@@ -3,16 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+
     <title>Standby</title>
 </head>
 <body>
-    <form>
+    <form id="standbyForm">
         <label for="name">name</label>
-        <input type="text" id="name"></input>
+        <input type="text" id="name" name="name" required>
         <br>
         <label for="room">room</label>
-        <input type="text" id = "text"></input>
-        
+        <input type="text" id="room" name="room" required>
+        <input type="submit" onclick="createroom()">
+        <input type="reset">
+        <button type="button" onclick="fillGeneratedRoom()">Generate</button>
+        <script>
+            const socket = io();
+            const form = document.getElementById('standbyForm');
+            const nameInput = document.getElementById('name');
+            const roomInput = document.getElementById('room');
+            const storageKey = 'standbyFormData';
+
+            function saveForm() {
+                const data = {
+                    name: nameInput.value,
+                    room: roomInput.value,
+                };
+                localStorage.setItem(storageKey, JSON.stringify(data));
+            }
+
+            function restoreForm() {
+                const saved = localStorage.getItem(storageKey);
+                if (!saved) return;
+
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.name) nameInput.value = data.name;
+                    if (data.room) roomInput.value = data.room;
+                } catch (error) {
+                    console.warn('Failed to restore form data:', error);
+                }
+            }
+
+            function createroom() {
+                const room = roomInput.value;
+                const name = nameInput.value;
+                saveForm();
+                socket.emit('host-room-creation', { name, room });
+            }
+
+            function generateRoomId(length = 6) {
+                const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let result = '';
+
+                for (let i = 0; i < length; i++) {
+                    const randomIndex = Math.floor(Math.random() * characters.length);
+                    result += characters.charAt(randomIndex);
+                }
+
+                return result;
+            }
+
+            function fillGeneratedRoom() {
+                roomInput.value = generateRoomId();
+                saveForm();
+            }
+
+            window.addEventListener('DOMContentLoaded', restoreForm);
+            nameInput.addEventListener('input', saveForm);
+            roomInput.addEventListener('input', saveForm);
+            form.addEventListener('submit', saveForm);
+        </script>
     </form>
 </body>
 </html>
